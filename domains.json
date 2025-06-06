@@ -1,11 +1,9 @@
 {
-  "https://www.eliasaf.co.il/": [
-    "שמאי מקרקעין"
-  ],
-  "tivdrilling.co.il": [
-    "קידוחי כלונסאות"
-  ],
-  "eliasaf.co.il": [
-    "שמאי מקרקעין"
-  ]
+  "domain1.com": {
+    "keyword1": [],
+    "keyword2": []
+  },
+  "domain2.com": {
+    "keyword1": []
+  }
 }
