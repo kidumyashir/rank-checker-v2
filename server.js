@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SERP_API_KEY = process.env.SERP_API_KEY || 'הכנס כאן את המפתח שלך'; 
+const SERP_API_KEY = process.env.SERP_API_KEY || 'f09191e9529ac5c8524214e0fe7f5a79dbf754f912330921b57829c6b2fc6ff5';
 
 app.use(cors());
 app.use(express.json());
