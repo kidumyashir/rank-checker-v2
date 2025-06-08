@@ -13,6 +13,18 @@ app.use(express.json());
 
 const domainsFilePath = path.join(__dirname, 'domains.json');
 
+// פונקציית ניקוי דומיין אחידה
+function cleanDomain(domain) {
+    return domain
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\/$/, '')
+        .replace(/^\.+/, '')
+        .replace(/\s+/g, '')
+        .trim();
+}
+
 // טוען את קובץ ה-json אם קיים, אחרת יוצר חדש
 const loadDomains = () => {
     if (!fs.existsSync(domainsFilePath)) {
@@ -28,10 +40,12 @@ const saveDomains = (domains) => {
 
 // יצירת דומיין חדש
 app.post('/add-domain', (req, res) => {
-    const { domain } = req.body;
+    let { domain } = req.body;
     if (!domain) {
         return res.status(400).json({ error: "חובה לציין דומיין" });
     }
+
+    domain = cleanDomain(domain);
     const data = loadDomains();
     if (!data[domain]) {
         data[domain] = {};
@@ -42,10 +56,11 @@ app.post('/add-domain', (req, res) => {
 
 // הוספת ביטוי חדש לדומיין
 app.post('/add-keyword', (req, res) => {
-    const { domain, keyword } = req.body;
+    let { domain, keyword } = req.body;
     if (!domain || !keyword) {
         return res.status(400).json({ error: "חובה דומיין וביטוי" });
     }
+    domain = cleanDomain(domain);
     const data = loadDomains();
     if (!data[domain]) {
         data[domain] = {};
@@ -79,9 +94,10 @@ async function checkPosition(domain, keyword, device) {
     return null; // לא נמצא
 }
 
-// מבצע בדיקת מיקומים ושומר היסטוריה (דסקטופ + מובייל)
+// בדיקת מיקומים לכל הדומיין
 app.post('/check-rank', async (req, res) => {
-    const { domain } = req.body;
+    let { domain } = req.body;
+    domain = cleanDomain(domain);
     const data = loadDomains();
 
     if (!data[domain]) {
@@ -127,18 +143,32 @@ app.get('/domains', (req, res) => {
 // החזרת ביטויים של דומיין
 app.get('/domains/:domain', (req, res) => {
     const data = loadDomains();
-    const domain = req.params.domain;
+    const domain = cleanDomain(req.params.domain);
     res.json(Object.keys(data[domain] || {}));
 });
 
 // החזרת היסטוריית מיקומים של ביטוי
 app.get('/domains/:domain/:keyword', (req, res) => {
     const data = loadDomains();
-    const domain = req.params.domain;
+    const domain = cleanDomain(req.params.domain);
     const keyword = req.params.keyword;
     res.json(data[domain]?.[keyword] || []);
 });
 
+// מחיקת דומיין
+app.delete('/delete-domain/:domain', (req, res) => {
+    const data = loadDomains();
+    const domain = cleanDomain(req.params.domain);
+
+    if (!data[domain]) {
+        return res.status(404).json({ error: "הדומיין לא נמצא" });
+    }
+
+    delete data[domain];
+    saveDomains(data);
+    res.json({ success: true });
+});
+
 app.listen(PORT, () => {
-    console.log(`🔥 V3 השרת רץ על פורט ${PORT}`);
+    console.log(`🔥 V2 השרת רץ על פורט ${PORT}`);
 });
