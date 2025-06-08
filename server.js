@@ -57,7 +57,29 @@ app.post('/add-keyword', (req, res) => {
     res.json({ success: true });
 });
 
-// מבצע בדיקת מיקום ושומר היסטוריה
+// פונקציה לבדיקה לכל מכשיר
+async function checkPosition(domain, keyword, device) {
+    for (let page = 1; page <= 2; page++) {
+        const params = {
+            engine: 'google',
+            q: keyword,
+            gl: 'il',
+            hl: 'he',
+            api_key: SERP_API_KEY,
+            device: device,
+            start: (page - 1) * 10
+        };
+        const response = await axios.get('https://serpapi.com/search', { params });
+        const serpResults = response.data.organic_results;
+        const indexInPage = serpResults.findIndex(result => result.link.includes(domain));
+        if (indexInPage >= 0) {
+            return (page - 1) * 10 + indexInPage + 1;
+        }
+    }
+    return null; // לא נמצא
+}
+
+// מבצע בדיקת מיקומים ושומר היסטוריה (דסקטופ + מובייל)
 app.post('/check-rank', async (req, res) => {
     const { domain } = req.body;
     const data = loadDomains();
@@ -71,36 +93,20 @@ app.post('/check-rank', async (req, res) => {
         const results = [];
 
         for (let keyword of Object.keys(data[domain])) {
-            let position = "לא נמצא בעמוד 1-2";
-            for (let page = 1; page <= 2; page++) {
-                const params = {
-                    engine: 'google',
-                    q: keyword,
-                    gl: 'il',
-                    hl: 'he',
-                    api_key: SERP_API_KEY,
-                    start: (page - 1) * 10
-                };
-
-                const response = await axios.get('https://serpapi.com/search', { params });
-                const serpResults = response.data.organic_results;
-                const indexInPage = serpResults.findIndex(result => result.link.includes(domain));
-                if (indexInPage >= 0) {
-                    position = (page - 1) * 10 + indexInPage + 1;
-                    break;
-                }
-            }
+            const desktopPos = await checkPosition(domain, keyword, 'desktop');
+            const mobilePos = await checkPosition(domain, keyword, 'mobile');
 
             const record = {
                 date: today,
-                position: (typeof position === 'number') ? position : null
+                desktop: desktopPos,
+                mobile: mobilePos
             };
 
-            // שמור בהיסטוריה
             data[domain][keyword].push(record);
             results.push({
                 keyword,
-                position: (typeof position === 'number') ? `מיקום ${position}` : position
+                desktop: desktopPos !== null ? `מיקום ${desktopPos}` : "לא נמצא",
+                mobile: mobilePos !== null ? `מיקום ${mobilePos}` : "לא נמצא"
             });
         }
 
@@ -134,5 +140,5 @@ app.get('/domains/:domain/:keyword', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🔥 השרת רץ על פורט ${PORT}`);
+    console.log(`🔥 V3 השרת רץ על פורט ${PORT}`);
 });
